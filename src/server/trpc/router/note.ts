@@ -11,8 +11,11 @@ const defaultNoteSelect = Prisma.validator<Prisma.NoteSelect>()({
 });
 
 export const noteRouter = t.router({
-  all: t.procedure.query(() => {
-    return prisma?.note.findMany({ select: defaultNoteSelect });
+  all: t.procedure.input(z.number().int().optional()).query(() => {
+    return prisma?.note.findMany({
+      select: defaultNoteSelect,
+      orderBy: { createdAt: "asc" },
+    });
   }),
   add: t.procedure
     .input(

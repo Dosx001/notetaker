@@ -69,38 +69,55 @@ const Home: NextPage = () => {
             placeholder="Content"
           />
           {(update && (
-            <button
-              className="bg-green-300 text-white rounded p-1"
-              // onClick={() => handleUpdate(note)}
-              onClick={async (e) => {
-                e.preventDefault();
-                setUpate(false);
-                const title = document.getElementById(
-                  "title"
-                )! as HTMLInputElement;
-                const content = document.getElementById(
-                  "content"
-                )! as HTMLInputElement;
-                const input = {
-                  id: id,
-                  data: {
-                    title: title.value,
-                    content: content.value,
-                  },
-                };
-                try {
-                  await editNote.mutateAsync(input);
-                  title.value = "";
-                  content.value = "";
-                } catch {
-                  (e: Error) => {
-                    console.log(e);
+            <div className="flex">
+              <button
+                className="bg-green-300 mr-1 w-[100%] text-white rounded p-1"
+                // onClick={() => handleUpdate(note)}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setUpate(false);
+                  const title = document.getElementById(
+                    "title"
+                  )! as HTMLInputElement;
+                  const content = document.getElementById(
+                    "content"
+                  )! as HTMLInputElement;
+                  const input = {
+                    id: id,
+                    data: {
+                      title: title.value,
+                      content: content.value,
+                    },
                   };
-                }
-              }}
-            >
-              Update
-            </button>
+                  try {
+                    await editNote.mutateAsync(input);
+                    title.value = "";
+                    content.value = "";
+                  } catch {
+                    (e: Error) => {
+                      console.log(e);
+                    };
+                  }
+                }}
+              >
+                Update
+              </button>
+              <button
+                className="bg-red-500 rounded w-[100%] p-1"
+                onClick={(e) => {
+                  e.preventDefault();
+                  (
+                    document.getElementById("title")! as HTMLInputElement
+                  ).value = "";
+                  (
+                    document.getElementById("content")! as HTMLInputElement
+                  ).value = "";
+                  setUpate(false);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           )) || (
             <button
               className="bg-blue-500 text-white rounded p-1"
@@ -121,6 +138,8 @@ const Home: NextPage = () => {
                     <p className="text-sm">{note.content}</p>
                   </div>
                   <button
+                    className="bg-blue-500 rounded px-3 mr-2"
+                    disabled={editNote.isLoading}
                     onClick={() => {
                       setUpate(true);
                       setId(note.id);
@@ -133,13 +152,18 @@ const Home: NextPage = () => {
                       title.value = note.title;
                       content.value = note.content;
                     }}
-                    className="bg-blue-500 rounded px-3 mr-2"
                   >
-                    edit
+                    Edit
                   </button>
                   <button
-                    onClick={() => delNote.mutate(note.id)}
                     className="bg-red-500 px-3 text-white rounded"
+                    disabled={delNote.isLoading}
+                    onClick={() => {
+                      delNote.mutate(note.id);
+                      if (note.id === id) {
+                        setUpate(false);
+                      }
+                    }}
                   >
                     X
                   </button>
