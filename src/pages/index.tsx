@@ -1,10 +1,24 @@
 import type { NextPage } from "next";
 import Head from "next/head";
-import { trpc } from "../utils/trpc";
+import { trpc } from "utils/trpc";
 
 const Home: NextPage = () => {
-  const hello = trpc.proxy.example.hello.useQuery({ text: "from tRPC" });
-
+  const NOTE = trpc.proxy.note;
+  const notes = NOTE.all.useQuery();
+  const utils = trpc.proxy.useContext();
+  const addNote = NOTE.add.useMutation({
+    async onSuccess() {
+      await utils.note.all.invalidate();
+    },
+  });
+  const delNote = NOTE.del.useMutation({
+    async onSuccess() {
+      notes.refetch();
+    },
+  });
+  const handleDelete = async (id: number) => {
+    delNote.mutate(id);
+  };
   return (
     <>
       <Head>
@@ -13,34 +27,69 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main className="container flex flex-col items-center justify-center min-h-screen p-4 mx-auto">
-        <h1 className="text-5xl md:text-[5rem] leading-normal font-extrabold text-gray-700">
-          Create <span className="text-purple-300">T3</span> App
-        </h1>
-        <p className="text-2xl text-gray-700">This stack uses:</p>
-        <div className="grid gap-3 pt-3 mt-3 text-center md:grid-cols-2 lg:w-2/3">
-          <TechnologyCard
-            name="NextJS"
-            description="The React framework for production"
-            documentation="https://nextjs.org/"
+        <h1 className="text-center font-bold text-2xl mt-4">Notes</h1>
+        <form
+          className="w-auto min-w-[25%] max-w-min mx-auto space-y-6 flex flex-col items-stretch"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const $title: HTMLInputElement = (e as any).target.elements.title;
+            const $content: HTMLInputElement = (e as any).target.elements
+              .content;
+            const input = {
+              title: $title.value,
+              content: $content.value,
+            };
+            try {
+              await addNote.mutateAsync(input);
+              $title.value = "";
+              $content.value = "";
+            } catch {
+              (e: Error) => {
+                console.log(e);
+              };
+            }
+          }}
+        >
+          <input
+            className="border-2 rounded border-gray-600 p-1"
+            disabled={addNote.isLoading}
+            id="title"
+            placeholder="Title"
+            type="text"
           />
-          <TechnologyCard
-            name="TypeScript"
-            description="Strongly typed programming language that builds on JavaScript, giving you better tooling at any scale"
-            documentation="https://www.typescriptlang.org/"
+          <textarea
+            className="border-2 rounded border-gray-600 p-1"
+            disabled={addNote.isLoading}
+            id="content"
+            placeholder="Content"
           />
-          <TechnologyCard
-            name="TailwindCSS"
-            description="Rapidly build modern websites without ever leaving your HTML"
-            documentation="https://tailwindcss.com/"
-          />
-          <TechnologyCard
-            name="tRPC"
-            description="End-to-end typesafe APIs made easy"
-            documentation="https://trpc.io/"
-          />
-        </div>
-        <div className="flex items-center justify-center w-full pt-6 text-2xl text-blue-500">
-          {hello.data ? <p>{hello.data.greeting}</p> : <p>Loading..</p>}
+          <button
+            className="bg-blue-500 text-white rounded p-1"
+            disabled={addNote.isLoading}
+            type="submit"
+          >
+            Add
+          </button>
+        </form>
+        <div className="w-auto min-w-[25%] max-w-min mt-20 mx-auto space-y-6 flex flex-col items-stretch">
+          <ul>
+            {notes.data?.map((note) => (
+              <li key={note.id} className="border-b border-gray-600 p-2">
+                <div className="flex justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-bold">{note.title}</h3>
+                    <p className="text-sm">{note.content}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDelete(note.id)}
+                    className="bg-red-500 px-3 text-white rounded"
+                  >
+                    X
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </main>
     </>
@@ -48,31 +97,3 @@ const Home: NextPage = () => {
 };
 
 export default Home;
-
-// Technology component
-interface TechnologyCardProps {
-  name: string;
-  description: string;
-  documentation: string;
-}
-
-const TechnologyCard = ({
-  name,
-  description,
-  documentation,
-}: TechnologyCardProps) => {
-  return (
-    <section className="flex flex-col justify-center p-6 duration-500 border-2 border-gray-500 rounded shadow-xl motion-safe:hover:scale-105">
-      <h2 className="text-lg text-gray-700">{name}</h2>
-      <p className="text-sm text-gray-600">{description}</p>
-      <a
-        className="mt-3 text-sm underline text-violet-500 decoration-dotted underline-offset-2"
-        href={documentation}
-        target="_blank"
-        rel="noreferrer"
-      >
-        Documentation
-      </a>
-    </section>
-  );
-};
