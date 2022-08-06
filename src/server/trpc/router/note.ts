@@ -34,4 +34,23 @@ export const noteRouter = t.router({
     await prisma?.note.delete({ where: { id } });
     return { id };
   }),
+  edit: t.procedure
+    .input(
+      z.object({
+        id: z.number().int().optional(),
+        data: z.object({
+          title: z.string().min(1).max(20),
+          content: z.string().min(1).max(512),
+        }),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { id, data } = input;
+      const note = await prisma?.note.update({
+        where: { id },
+        data,
+        select: defaultNoteSelect,
+      });
+      return note;
+    }),
 });
